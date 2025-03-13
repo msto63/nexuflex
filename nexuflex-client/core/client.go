@@ -18,8 +18,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/msto63/nexuflex/nexuflex-client/config"
 	"github.com/msto63/nexuflex/shared/proto"
-	"github.com/nexuflex/nexuflex-client/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -82,8 +82,8 @@ func (c *Client) DiscoverServer(timeout time.Duration) error {
 	}
 
 	// Perform server discovery (simulated for now)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// defer cancel()
 
 	// In a full implementation, this would send a UDP multicast
 	// For this example, we simulate discovery with known servers
