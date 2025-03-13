@@ -1,1 +1,269 @@
- 
+syntax = "proto3";
+
+package nexuflex;
+
+option go_package = "github.com/msto63/nexuflex/shared/proto";
+
+// NexuflexService defines the generic interface between client and application server
+service NexuflexService {
+  // System functions
+  rpc Discover(DiscoverRequest) returns (DiscoverResponse);
+  rpc Connect(ConnectRequest) returns (ConnectResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc KeepAlive(KeepAliveRequest) returns (KeepAliveResponse);
+  
+  // Main function for all commands
+  rpc ExecuteCommand(CommandRequest) returns (CommandResponse);
+  
+  // Streaming functions for long-running operations
+  rpc ExecuteStreamingCommand(CommandRequest) returns (stream CommandOutput);
+  
+  // Helper functions
+  rpc GetAvailableServices(ServicesRequest) returns (ServicesResponse);
+  rpc GetServiceCommands(ServiceCommandsRequest) returns (ServiceCommandsResponse);
+  rpc GetCommandHelp(CommandHelpRequest) returns (CommandHelpResponse);
+  rpc AutoComplete(AutoCompleteRequest) returns (AutoCompleteResponse);
+  
+  // Alias management
+  rpc GetAliases(GetAliasesRequest) returns (GetAliasesResponse);
+  rpc CreateAlias(CreateAliasRequest) returns (CreateAliasResponse);
+  rpc DeleteAlias(DeleteAliasRequest) returns (DeleteAliasResponse);
+}
+
+// Request for automatic server discovery
+message DiscoverRequest {
+  string discovery_token = 1; // Optional security token
+}
+
+message DiscoverResponse {
+  repeated ServerInfo available_servers = 1;
+}
+
+// Server information for discovery and connect
+message ServerInfo {
+  string hostname = 1;
+  string address = 2;
+  int32 port = 3;
+  string short_name = 4;
+  string description = 5;
+  bool tls_enabled = 6;
+  string version = 7;
+}
+
+// Connect to a specific server
+message ConnectRequest {
+  string address = 1;
+  int32 port = 2;
+  bool use_tls = 3;
+}
+
+message ConnectResponse {
+  bool success = 1;
+  string server_name = 2;
+  string version = 3;
+  string error_message = 4;
+  repeated string supported_features = 5;
+}
+
+// Login request with user credentials
+message LoginRequest {
+  string username = 1;
+  string password = 2; // In a real system, replace with cryptographic challenge
+}
+
+message LoginResponse {
+  bool success = 1;
+  string session_token = 2;
+  string error_message = 3;
+  UserInfo user_info = 4;
+}
+
+message UserInfo {
+  string username = 1;
+  string display_name = 2;
+  repeated string roles = 3;
+  int32 session_timeout_minutes = 4;
+  int32 absolute_timeout_minutes = 5;
+  string last_login_time = 6;
+}
+
+// Logout
+message LogoutRequest {
+  string session_token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Keep-Alive for session management
+message KeepAliveRequest {
+  string session_token = 1;
+}
+
+message KeepAliveResponse {
+  bool session_valid = 1;
+  int32 remaining_minutes = 2;
+}
+
+// Main command request
+message CommandRequest {
+  string session_token = 1;
+  string command_line = 2;     // Complete input line
+  string last_context = 3;     // Optional last context for service prefill
+}
+
+// Response to a command
+message CommandResponse {
+  bool success = 1;
+  string error_message = 2;
+  string output = 3;           // Text output for the output area
+  string status_message = 4;   // Message for the status line
+  StatusInfo status_info = 5;  // Information for status display
+  string new_context = 6;      // New business service context after execution
+}
+
+// Streaming output for long-running commands
+message CommandOutput {
+  enum OutputType {
+    TEXT = 0;
+    STATUS_UPDATE = 1;
+    ERROR = 2;
+    COMPLETION = 3;
+  }
+  
+  OutputType type = 1;
+  string content = 2;
+  int32 progress_percent = 3;  // Optional progress value (0-100)
+}
+
+// Status information
+message StatusInfo {
+  enum ConnectionStatus {
+    OFFLINE = 0;
+    CONNECTING = 1;
+    CONNECTED = 2;
+    CONNECTION_ERROR = 3;
+  }
+  
+  enum SessionStatus {
+    NOT_LOGGED_IN = 0;
+    AUTHENTICATED = 1;
+    LOGIN_REQUIRED = 2;
+    SESSION_EXPIRING = 3;
+    SESSION_EXPIRED = 4;
+  }
+  
+  ConnectionStatus connection_status = 1;
+  SessionStatus session_status = 2;
+  string current_service = 3;
+  int32 session_remaining_minutes = 4;
+  string server_name = 5;
+  string username = 6;
+}
+
+// Query available services
+message ServicesRequest {
+  string session_token = 1;
+}
+
+message ServicesResponse {
+  repeated ServiceInfo services = 1;
+}
+
+message ServiceInfo {
+  string service_name = 1;
+  string description = 2;
+  string version = 3;
+  bool is_core_service = 4;
+}
+
+// Query commands of a service
+message ServiceCommandsRequest {
+  string session_token = 1;
+  string service_name = 2;
+}
+
+message ServiceCommandsResponse {
+  repeated CommandInfo commands = 1;
+}
+
+message CommandInfo {
+  string action = 1;
+  string subaction = 2;
+  string description = 3;
+  string usage_example = 4;
+  repeated ParameterInfo parameters = 5;
+}
+
+message ParameterInfo {
+  string name = 1;
+  string description = 2;
+  bool required = 3;
+  string data_type = 4;
+  string default_value = 5;
+}
+
+// Get help for a command
+message CommandHelpRequest {
+  string session_token = 1;
+  string service = 2;
+  string action = 3;
+  string subaction = 4;
+}
+
+message CommandHelpResponse {
+  string help_text = 1;
+  CommandInfo command_info = 2;
+}
+
+// Auto-Complete support
+message AutoCompleteRequest {
+  string session_token = 1;
+  string partial_input = 2;
+  string current_context = 3;
+  int32 cursor_position = 4;
+}
+
+message AutoCompleteResponse {
+  repeated string suggestions = 1;
+  string common_prefix = 2;
+}
+
+// Alias Management
+message GetAliasesRequest {
+  string session_token = 1;
+}
+
+message GetAliasesResponse {
+  repeated AliasInfo aliases = 1;
+}
+
+message AliasInfo {
+  string alias = 1;
+  string expanded_command = 2;
+  bool is_global = 3;
+}
+
+message CreateAliasRequest {
+  string session_token = 1;
+  string alias = 2;
+  string expanded_command = 3;
+}
+
+message CreateAliasResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message DeleteAliasRequest {
+  string session_token = 1;
+  string alias = 2;
+}
+
+message DeleteAliasResponse {
+  bool success = 1;
+  string error_message = 2;
+} 
